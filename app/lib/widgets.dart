@@ -6,7 +6,23 @@ import 'theme.dart';
 class SearchResult {
   final String path;
   final double score;
-  const SearchResult({required this.path, required this.score});
+  final String? imageUrl;   // network image URL for mock/demo
+  final String assetId;
+  final String resolution;
+  final String format;
+  final List<String> tags;
+  final String name;
+
+  const SearchResult({
+    required this.path,
+    required this.score,
+    this.imageUrl,
+    this.assetId = 'ASSET-0000',
+    this.resolution = '1920 × 1080',
+    this.format = 'JPEG (sRGB)',
+    this.tags = const [],
+    this.name = 'Asset',
+  });
 }
 
 // ── Image card with hover overlay ─────────────────────────────────────────────
@@ -60,6 +76,27 @@ class _ImageCardState extends State<ImageCard> {
   }
 
   Widget _buildImage() {
+    // Prefer network URL (mock/demo mode)
+    if (widget.item.imageUrl != null) {
+      return Image.network(
+        widget.item.imageUrl!,
+        fit: BoxFit.cover,
+        loadingBuilder: (ctx, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            color: AppTheme.imagePlaceholder,
+            child: const Center(
+              child: SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
+              ),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => Container(color: AppTheme.imagePlaceholder),
+      );
+    }
+    // Fallback to local file
     final f = File(widget.item.path);
     if (f.existsSync()) return Image.file(f, fit: BoxFit.cover);
     return Container(color: AppTheme.imagePlaceholder);
@@ -131,6 +168,7 @@ class AssetDetailsPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Preview image
                   AspectRatio(
                     aspectRatio: 16 / 9,
                     child: Container(
@@ -140,22 +178,32 @@ class AssetDetailsPanel extends StatelessWidget {
                         border: Border.all(color: AppTheme.border),
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: item != null && File(item!.path).existsSync()
-                          ? Image.file(File(item!.path), fit: BoxFit.cover)
-                          : null,
+                      child: item == null
+                          ? null
+                          : item!.imageUrl != null
+                              ? Image.network(item!.imageUrl!, fit: BoxFit.cover)
+                              : File(item!.path).existsSync()
+                                  ? Image.file(File(item!.path), fit: BoxFit.cover)
+                                  : null,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
+                  if (item != null)
+                    Text(item!.name,
+                        style: AppTheme.outfit(14, FontWeight.w600, AppTheme.textPrimary)),
+                  const SizedBox(height: 12),
                   _MetaRow(label: 'Similarity Score', badge: item != null ? '${(item!.score * 100).toStringAsFixed(1)}%' : '--'),
-                  const _MetaRow(label: 'Source ID', value: 'ASSET-8942-X'),
-                  const _MetaRow(label: 'Resolution', value: '4096 × 2160'),
-                  const _MetaRow(label: 'Format', value: 'JPEG (sRGB)'),
+                  _MetaRow(label: 'Source ID', value: item?.assetId ?? '--'),
+                  _MetaRow(label: 'Resolution', value: item?.resolution ?? '--'),
+                  _MetaRow(label: 'Format', value: item?.format ?? '--'),
                   const SizedBox(height: 12),
                   Text('Identified Features', style: AppTheme.inter(12, FontWeight.w400, AppTheme.textSecondary)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 6, runSpacing: 6,
-                    children: ['Interior', 'Modern', 'High-Key'].map((t) => _FeatureChip(label: t)).toList(),
+                    children: (item?.tags.isNotEmpty == true ? item!.tags : ['—'])
+                        .map((t) => _FeatureChip(label: t))
+                        .toList(),
                   ),
                 ],
               ),

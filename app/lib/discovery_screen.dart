@@ -5,10 +5,57 @@ import 'widgets.dart';
 import 'results_screen.dart';
 
 // Mock results for UI demo
-final _mockResults = List.generate(
-  6,
-  (i) => SearchResult(path: 'C:/nonexistent/img_$i.jpg', score: 0.99 - i * 0.03),
-);
+final _mockResults = [
+  SearchResult(
+    name: 'Modern Minimalist Living',
+    path: '',
+    score: 0.99,
+    imageUrl: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1000',
+    assetId: 'ASSET-7721-A',
+    resolution: '5120 × 2880',
+    tags: ['Interior', 'Modern', 'Living Room', 'High-Key'],
+  ),
+  SearchResult(
+    name: 'Abstract Marble Kitchen',
+    path: '',
+    score: 0.94,
+    imageUrl: 'https://images.unsplash.com/photo-1556912177-c54857056a41?auto=format&fit=crop&q=80&w=1000',
+    assetId: 'ASSET-8812-B',
+    tags: ['Kitchen', 'Marble', 'Luxury', 'Clean'],
+  ),
+  SearchResult(
+    name: 'Contemporary Lounge',
+    path: '',
+    score: 0.91,
+    imageUrl: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&q=80&w=1000',
+    assetId: 'ASSET-9010-C',
+    tags: ['Furniture', 'Sofa', 'Minimalist'],
+  ),
+  SearchResult(
+    name: 'Architectural Staircase',
+    path: '',
+    score: 0.88,
+    imageUrl: 'https://images.unsplash.com/photo-1506704173880-3626359f400e?auto=format&fit=crop&q=80&w=1000',
+    assetId: 'ASSET-4423-D',
+    tags: ['Architecture', 'Wood', 'Geometric'],
+  ),
+  SearchResult(
+    name: 'Office Workspace',
+    path: '',
+    score: 0.85,
+    imageUrl: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=1000',
+    assetId: 'ASSET-2231-E',
+    tags: ['Office', 'Workspace', 'Bright'],
+  ),
+  SearchResult(
+    name: 'Light Study Corner',
+    path: '',
+    score: 0.82,
+    imageUrl: 'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&q=80&w=1000',
+    assetId: 'ASSET-1109-F',
+    tags: ['Reading', 'Interior', 'Soft Lighting'],
+  ),
+];
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -18,7 +65,7 @@ class DiscoveryScreen extends StatefulWidget {
 
 class _DiscoveryScreenState extends State<DiscoveryScreen> {
   final TextEditingController _ctrl = TextEditingController();
-  SearchResult? _selected = _mockResults[0];
+  SearchResult? _selected;
   final List<SearchResult> _results = _mockResults;
 
   void _doSearch(String q) {
@@ -140,7 +187,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Expanded(child: _ResultsGrid(results: _results, onSelect: (r) => setState(() => _selected = r))),
-                            AssetDetailsPanel(item: _selected, onClose: () => setState(() => _selected = null)),
+                            if (_selected != null)
+                              AssetDetailsPanel(item: _selected, onClose: () => setState(() => _selected = null)),
                           ],
                         ),
                       ),

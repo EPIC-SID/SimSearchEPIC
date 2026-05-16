@@ -3,10 +3,50 @@ import 'theme.dart';
 import 'sidebar.dart';
 import 'widgets.dart';
 
-final _mockResults = List.generate(
-  6,
-  (i) => SearchResult(path: 'C:/nonexistent/img_$i.jpg', score: 0.95 - i * 0.03),
-);
+final _mockResults = [
+  SearchResult(
+    name: 'Misty Alpine Lake',
+    path: '',
+    score: 0.98,
+    imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800',
+    tags: ['Nature', 'Mountains', 'Lake'],
+  ),
+  SearchResult(
+    name: 'Rolling Green Hills',
+    path: '',
+    score: 0.95,
+    imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800',
+    tags: ['Landscape', 'Summer', 'Fields'],
+  ),
+  SearchResult(
+    name: 'Desert Sunset Dunes',
+    path: '',
+    score: 0.92,
+    imageUrl: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?auto=format&fit=crop&q=80&w=800',
+    tags: ['Desert', 'Sunset', 'Nature'],
+  ),
+  SearchResult(
+    name: 'Forest Stream Flow',
+    path: '',
+    score: 0.89,
+    imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=800',
+    tags: ['Forest', 'Water', 'Peaceful'],
+  ),
+  SearchResult(
+    name: 'Snowy Peak Vista',
+    path: '',
+    score: 0.86,
+    imageUrl: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&q=80&w=800',
+    tags: ['Winter', 'Snow', 'Mountains'],
+  ),
+  SearchResult(
+    name: 'Coastal Cliff Edge',
+    path: '',
+    score: 0.83,
+    imageUrl: 'https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&q=80&w=800',
+    tags: ['Ocean', 'Cliff', 'Travel'],
+  ),
+];
 
 class ResultsScreen extends StatelessWidget {
   final String query;
@@ -30,6 +70,19 @@ class ResultsScreen extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Back button
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16, top: 2),
+                        child: IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppTheme.bg,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.all(12),
+                          ),
+                        ),
+                      ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +194,10 @@ class _GridImageCardState extends State<_GridImageCard> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Container(color: AppTheme.imagePlaceholder),
+            if (widget.item.imageUrl != null)
+              Image.network(widget.item.imageUrl!, fit: BoxFit.cover)
+            else
+              Container(color: AppTheme.imagePlaceholder),
             if (_hovered)
               Container(
                 color: Colors.white.withValues(alpha: 0.8),
