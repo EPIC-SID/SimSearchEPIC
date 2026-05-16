@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>SimSearch - Discovery</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Outfit:wght@600;700&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#0061a3",
+                      "background": "#f9f9f9",
+                      "on-surface": "#1a1c1c",
+                      "surface-container-lowest": "#ffffff",
+                      "outline-variant": "#bfc7d4",
+                      "primary-container": "#d1e4ff",
+                      "on-primary-container": "#001d36",
+              },
+              "fontFamily": {
+                      "headline-md": ["Outfit"],
+                      "body-md": ["Inter"],
+                      "display-lg": ["Outfit"]
+              }
+            },
+          },
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f9f9f9;
+            color: #1a1c1c;
+            -webkit-user-select: none; /* Desktop app feel */
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen font-body-md overflow-hidden">
+
+<div class="flex flex-1 h-screen overflow-hidden">
+    <!-- SideNavBar (Fixed for Desktop) -->
+    <nav class="bg-white w-64 border-r border-outline-variant flex flex-col p-6 z-40">
+        <div class="mb-10">
+            <h2 class="text-2xl font-bold text-on-surface">SimSearch</h2>
+            <p class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Local Image Engine</p>
+        </div>
+        <div class="flex flex-col gap-2">
+            <a class="flex items-center gap-4 bg-blue-50 text-blue-700 rounded-lg px-4 py-3 font-semibold transition-all" href="#" onclick="switchTab('search')">
+                <span class="material-symbols-outlined">search</span>
+                <span>Search</span>
+            </a>
+            <a class="flex items-center gap-4 text-gray-600 px-4 py-3 hover:bg-gray-50 rounded-lg transition-all" href="#" onclick="switchTab('faces')">
+                <span class="material-symbols-outlined">face</span>
+                <span>Faces</span>
+            </a>
+            <a class="flex items-center gap-4 text-gray-600 px-4 py-3 hover:bg-gray-50 rounded-lg transition-all mt-auto" href="#" onclick="openSettings()">
+                <span class="material-symbols-outlined">settings</span>
+                <span>Settings</span>
+            </a>
+        </div>
+        
+        <!-- Status Widget -->
+        <div class="mt-10 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-xs font-bold text-gray-700">NPU ACTIVE</span>
+            </div>
+            <p class="text-[10px] text-gray-500">CLIP model loaded locally on Intel NPU</p>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full bg-white relative">
+        <!-- Search Header -->
+        <div class="px-8 py-10 border-b border-gray-100 flex flex-col items-center">
+            <h1 class="text-4xl font-bold text-on-surface mb-8">Discovery</h1>
+            <div class="w-full max-w-2xl relative">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-gray-400">search</span>
+                </div>
+                <input id="searchInput" class="block w-full pl-12 pr-24 py-4 border border-gray-200 rounded-2xl text-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm" placeholder="Search with text or pick an image..." type="text" onkeydown="if(event.key==='Enter') performSearch()"/>
+                <div class="absolute inset-y-0 right-2 flex items-center gap-2">
+                    <button class="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition-colors" onclick="pickImage()" title="Search by Image">
+                        <span class="material-symbols-outlined">upload_file</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto custom-scroll p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800" id="resultsTitle">Recent Index</h2>
+                <span class="text-sm text-gray-500" id="matchCount">0 matches</span>
+            </div>
+
+            <!-- Image Grid -->
+            <div id="imageGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Skeletons / Placeholder -->
+                <div class="aspect-square bg-gray-100 animate-pulse rounded-xl"></div>
+                <div class="aspect-square bg-gray-100 animate-pulse rounded-xl"></div>
+                <div class="aspect-square bg-gray-100 animate-pulse rounded-xl"></div>
+                <div class="aspect-square bg-gray-100 animate-pulse rounded-xl"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Detail Panel (Hidden by default) -->
+    <aside id="detailPanel" class="w-80 border-l border-gray-100 hidden flex flex-col bg-white">
+        <!-- Content here will be dynamic -->
+    </aside>
+</div>
+
+<script>
+    // Bridge to Python (pywebview)
+    async function performSearch() {
+        const query = document.getElementById('searchInput').value;
+        if (!query) return;
+        
+        showLoading();
+        // Call Python
+        const results = await window.pywebview.api.search_by_text(query);
+        renderResults(results);
+    }
+
+    async function pickImage() {
+        // Call Python to open native file dialog
+        const filePath = await window.pywebview.api.pick_file();
+        if (filePath) {
+            document.getElementById('searchInput').value = filePath;
+            showLoading();
+            const results = await window.pywebview.api.search_by_image(filePath);
+            renderResults(results);
+        }
+    }
+
+    async function openSettings() {
+        await window.pywebview.api.open_settings();
+    }
+
+    function renderResults(results) {
+        const grid = document.getElementById('imageGrid');
+        grid.innerHTML = '';
+        
+        if (!results || results.length === 0) {
+            grid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400 font-medium">No similar images found. Try a different prompt.</div>';
+            document.getElementById('matchCount').innerText = '0 matches';
+            return;
+        }
+
+        document.getElementById('matchCount').innerText = `${results.length} matches`;
+        document.getElementById('resultsTitle').innerText = 'Search Results';
+
+        results.forEach(res => {
+            const card = document.createElement('div');
+            card.className = 'relative group cursor-pointer border border-gray-100 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all';
+            card.innerHTML = `
+                <div class="aspect-square bg-cover bg-center" style="background-image: url('file://${res.path.replace(/\\/g, '/')}')"></div>
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                <div class="absolute bottom-2 left-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-blue-600 border border-blue-50">
+                    ${Math.round(res.score * 100)}% Match
+                </div>
+            `;
+            card.onclick = () => showDetails(res);
+            grid.appendChild(card);
+        });
+    }
+
+    function showLoading() {
+        const grid = document.getElementById('imageGrid');
+        grid.innerHTML = Array(8).fill(0).map(() => 
+            `<div class="aspect-square bg-gray-50 animate-pulse rounded-xl"></div>`
+        ).join('');
+    }
+
+    function showDetails(asset) {
+        // Implementation for showing details side panel
+        console.log("Showing details for:", asset);
+    }
+
+    function switchTab(tab) {
+        console.log("Switching to tab:", tab);
+        // Add tab switching logic here
+    }
+</script>
+</body>
+</html>
