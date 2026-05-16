@@ -93,7 +93,13 @@ class _ImageCardState extends State<ImageCard> {
             ),
           );
         },
-        errorBuilder: (_, __, ___) => Container(color: AppTheme.imagePlaceholder),
+        errorBuilder: (ctx, err, stack) {
+          debugPrint('Image load error: $err');
+          return Container(
+            color: AppTheme.imagePlaceholder,
+            child: const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white24, size: 24)),
+          );
+        },
       );
     }
     // Fallback to local file
@@ -181,7 +187,14 @@ class AssetDetailsPanel extends StatelessWidget {
                       child: item == null
                           ? null
                           : item!.imageUrl != null
-                              ? Image.network(item!.imageUrl!, fit: BoxFit.cover)
+                              ? Image.network(
+                                  item!.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (ctx, err, _) => Container(
+                                    color: AppTheme.imagePlaceholder,
+                                    child: const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white24)),
+                                  ),
+                                )
                               : File(item!.path).existsSync()
                                   ? Image.file(File(item!.path), fit: BoxFit.cover)
                                   : null,
