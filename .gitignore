@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.env
+venv/
+env/
+
+# ML Models (too large for GitHub)
+app/models/
+*.safetensors
+*.onnx
+*.pt
+*.pth
+*.h5
+
+# Flutter / Dart build artifacts
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/build/
+**/windows/flutter/ephemeral/
+
+# Android build artifacts
+.gradle/
+local.properties
+*.iml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
