@@ -1,0 +1,40 @@
+# SimSearch Project Overview
+
+## Purpose
+
+SimSearch is a local semantic image search app. It lets a Flutter frontend talk to a Python FastAPI backend that indexes local image folders with CLIP embeddings, stores vectors in FAISS, stores metadata in SQLite, and returns visually relevant images for natural-language text queries.
+
+## Current Main Path
+
+The active implementation is:
+
+- `app/index.py` - scans configured folders, embeds images, writes FAISS and SQLite data.
+- `app/search.py` - embeds text queries and searches the FAISS index.
+- `app/api.py` - exposes health, search, config, and index rebuild endpoints.
+- `frontend/v1` - Flutter UI for searching, settings, and index rebuilds.
+
+Older OpenVINO/NPU and benchmarking work has been moved under `experiments/` so it remains available without confusing the main app flow.
+
+## Architecture
+
+```text
+Image folders
+  -> scanner.py
+  -> index.py
+  -> CLIP image embeddings
+  -> FAISS index + SQLite path metadata
+
+Text query
+  -> Flutter UI
+  -> FastAPI /search
+  -> CLIP text embedding
+  -> FAISS nearest-neighbor search
+  -> image paths and scores
+```
+
+## Important Notes
+
+- Generated model files, local indexes, SQLite databases, and large media folders should not be committed.
+- The index can be rebuilt from the Flutter Settings screen or manually with `python index.py`.
+- Search quality is controlled by `confidence_threshold` in `app/config.json`.
+- For larger folders, the next major performance improvement should be batched indexing and incremental indexing.

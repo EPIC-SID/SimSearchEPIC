@@ -32,12 +32,22 @@ class AppSidebar extends StatelessWidget {
               children: [
                 Icon(Icons.image_search_rounded, size: 28, color: AppTheme.activeBlue),
                 const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('SimSearch', style: AppTheme.outfit(16, FontWeight.w700, AppTheme.textPrimary)),
-                    Text('Image Engine', style: AppTheme.inter(11, FontWeight.w400, AppTheme.textSecondary)),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SimSearch',
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.outfit(16, FontWeight.w700, AppTheme.textPrimary),
+                      ),
+                      Text(
+                        'Image Engine',
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.inter(11, FontWeight.w400, AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -94,9 +104,17 @@ class AppSidebar extends StatelessWidget {
               children: [
                 Icon(icon, size: 18, color: active ? AppTheme.white : AppTheme.textSecondary),
                 const SizedBox(width: 10),
-                Text(label,
-                    style: AppTheme.inter(14, active ? FontWeight.w600 : FontWeight.w400,
-                        active ? AppTheme.white : AppTheme.textSecondary)),
+                Expanded(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.inter(
+                      14,
+                      active ? FontWeight.w600 : FontWeight.w400,
+                      active ? AppTheme.white : AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

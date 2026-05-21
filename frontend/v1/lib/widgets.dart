@@ -29,8 +29,15 @@ class SearchResult {
 class ImageCard extends StatefulWidget {
   final SearchResult item;
   final bool featured;
+  final bool showScore;
   final VoidCallback onTap;
-  const ImageCard({super.key, required this.item, this.featured = false, required this.onTap});
+  const ImageCard({
+    super.key,
+    required this.item,
+    this.featured = false,
+    this.showScore = true,
+    required this.onTap,
+  });
 
   @override
   State<ImageCard> createState() => _ImageCardState();
@@ -61,13 +68,14 @@ class _ImageCardState extends State<ImageCard> {
                 duration: const Duration(milliseconds: 150),
                 color: Colors.black.withValues(alpha: _hovered ? 0.05 : 0.0),
               ),
-              Positioned(
-                top: widget.featured ? 12 : null,
-                right: widget.featured ? 12 : null,
-                bottom: widget.featured ? null : 10,
-                left: widget.featured ? null : 10,
-                child: _scoreBadge(),
-              ),
+              if (widget.showScore)
+                Positioned(
+                  top: widget.featured ? 12 : null,
+                  right: widget.featured ? 12 : null,
+                  bottom: widget.featured ? null : 10,
+                  left: widget.featured ? null : 10,
+                  child: _scoreBadge(),
+                ),
             ],
           ),
         ),

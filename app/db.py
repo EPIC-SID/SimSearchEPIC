@@ -1,15 +1,20 @@
 import sqlite3
 import json
-import os
-from datetime import datetime
+from contextlib import contextmanager
 
 class MediaDatabase:
     def __init__(self, db_path):
         self.db_path = db_path
         self._create_table()
 
+    @contextmanager
     def _get_connection(self):
-        return sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        try:
+            yield conn
+            conn.commit()
+        finally:
+            conn.close()
 
     def _create_table(self):
         with self._get_connection() as conn:

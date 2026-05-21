@@ -11,6 +11,16 @@ env/
 
 # ML Models (too large for GitHub)
 app/models/
+app/faiss_db/
+app/sql_db/
+backend/data/
+backend/models/
+backend/zero shot test/model_cache/
+backend/zero shot test/clip-vit-base-patch32-ir/
+experiments/openvino_backend_prototype/zero shot test/model_cache/
+experiments/openvino_backend_prototype/zero shot test/clip-vit-base-patch32-ir/
+images/
+test_media/
 *.safetensors
 *.onnx
 *.pt

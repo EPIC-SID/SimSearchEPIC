@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'theme.dart';
 import 'sidebar.dart';
 import 'services/api_service.dart';
@@ -29,6 +30,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _backendStatus = 'Checking...';
   int _indexedCount = 0;
   bool _backendOnline = false;
+  bool _backendReachable = false;
+  bool _indexing = false;
+  String? _indexMessage;
+  int _indexProcessed = 0;
+  int _indexTotal = 0;
+  double _indexPercent = 0.0;
+  String? _indexCurrentFile;
 
   // Save state
   bool _saving = false;
@@ -56,13 +64,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final health = await _api.health();
       if (!mounted) return;
       setState(() {
+        _backendReachable = true;
         _backendOnline = health.isReady;
-        _backendStatus = health.isReady ? 'Online' : 'Index empty';
+        _backendStatus = health.status == 'indexing'
+            ? 'Indexing'
+            : health.isReady
+                ? 'Online'
+                : 'Index empty';
         _indexedCount = health.indexedCount;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
+        _backendReachable = false;
         _backendOnline = false;
         _backendStatus = 'Offline';
         _indexedCount = 0;
@@ -81,7 +95,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Use defaults if config endpoint unavailable
     }
 
+    try {
+      final indexStatus = await _api.indexStatus();
+      if (!mounted) return;
+      setState(() {
+        _indexing = indexStatus.running;
+        _indexMessage = indexStatus.message;
+        _indexProcessed = indexStatus.processed;
+        _indexTotal = indexStatus.total;
+        _indexPercent = indexStatus.percent;
+        _indexCurrentFile = indexStatus.currentFile;
+        if (indexStatus.indexedCount > 0) _indexedCount = indexStatus.indexedCount;
+      });
+    } catch (_) {
+      // Older/offline backends will be represented by the health status above.
+    }
+
     if (mounted) setState(() => _loadingConfig = false);
+  }
+
+  Future<void> _rebuildIndex() async {
+    setState(() {
+      _indexing = true;
+      _indexMessage = 'Starting index rebuild...';
+      _indexProcessed = 0;
+      _indexTotal = 0;
+      _indexPercent = 0.0;
+      _indexCurrentFile = null;
+      _saveMessage = null;
+    });
+
+    try {
+      final started = await _api.rebuildIndex();
+      if (!mounted) return;
+      setState(() {
+        _indexing = started.running;
+        _indexMessage = started.message;
+        _indexProcessed = started.processed;
+        _indexTotal = started.total;
+        _indexPercent = started.percent;
+        _indexCurrentFile = started.currentFile;
+      });
+
+      while (mounted && _indexing) {
+        await Future.delayed(const Duration(seconds: 2));
+        final status = await _api.indexStatus();
+        if (!mounted) return;
+        setState(() {
+          _indexing = status.running;
+          _indexMessage = status.message;
+          _indexProcessed = status.processed;
+          _indexTotal = status.total;
+          _indexPercent = status.percent;
+          _indexCurrentFile = status.currentFile;
+          if (status.indexedCount > 0) _indexedCount = status.indexedCount;
+        });
+      }
+
+      await _loadSettings();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _indexing = false;
+        _indexMessage = 'Failed to rebuild index: $e';
+        _indexCurrentFile = null;
+      });
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -530,9 +609,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   textStyle: AppTheme.inter(12, FontWeight.w500, AppTheme.textSecondary),
                 ),
               ),
+              const SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: (!_backendReachable || _indexing) ? null : _rebuildIndex,
+                icon: _indexing
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white),
+                      )
+                    : const Icon(Icons.sync_outlined, size: 14),
+                label: Text(_indexing ? 'Indexing...' : 'Rebuild Index'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.activeBlue,
+                  foregroundColor: AppTheme.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  textStyle: AppTheme.inter(12, FontWeight.w600, AppTheme.white),
+                ),
+              ),
             ],
           ),
         ),
+        if (_indexMessage != null) ...[
+          const SizedBox(height: 12),
+          _IndexProgress(
+            indexing: _indexing,
+            message: _indexMessage!,
+            processed: _indexProcessed,
+            total: _indexTotal,
+            percent: _indexPercent,
+            currentFile: _indexCurrentFile,
+          ),
+        ],
         const SizedBox(height: 16),
         // Connection details
         Row(
@@ -678,6 +788,87 @@ class _LabeledField extends StatelessWidget {
         const SizedBox(height: 6),
         child,
       ],
+    );
+  }
+}
+
+// ── Index progress ────────────────────────────────────────────────────────────
+class _IndexProgress extends StatelessWidget {
+  final bool indexing;
+  final String message;
+  final int processed;
+  final int total;
+  final double percent;
+  final String? currentFile;
+
+  const _IndexProgress({
+    required this.indexing,
+    required this.message,
+    required this.processed,
+    required this.total,
+    required this.percent,
+    this.currentFile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasTotal = total > 0;
+    final clamped = percent.clamp(0.0, 1.0).toDouble();
+    final percentText = '${(clamped * 100).toStringAsFixed(0)}%';
+    final detail = hasTotal
+        ? '$processed of $total images processed'
+        : indexing
+            ? 'Preparing image library...'
+            : message;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: indexing ? AppTheme.activeBlueLight : AppTheme.bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: indexing ? AppTheme.activeBlue.withValues(alpha: 0.25) : AppTheme.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  message,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.inter(12, FontWeight.w600, AppTheme.textPrimary),
+                ),
+              ),
+              if (indexing)
+                Text(
+                  percentText,
+                  style: AppTheme.inter(12, FontWeight.w700, AppTheme.activeBlue),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: hasTotal ? clamped : null,
+              minHeight: 7,
+              backgroundColor: AppTheme.border,
+              color: AppTheme.activeBlue,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            currentFile == null ? detail : '$detail - $currentFile',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.inter(11, FontWeight.w400, AppTheme.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -56,14 +56,29 @@ def get_all_image_paths():
 # -----------------------------
 # INDEXING LOGIC
 # -----------------------------
-def run_indexing():
+def run_indexing(progress_callback=None):
+    def report(stage, processed=0, total=0, current_file=None, message=None):
+        if progress_callback is not None:
+            progress_callback(
+                {
+                    "stage": stage,
+                    "processed": processed,
+                    "total": total,
+                    "current_file": current_file,
+                    "message": message,
+                }
+            )
+
     print("Scanning configured directories for photos...")
+    report("scanning", message="Scanning configured folders...")
     image_paths = get_all_image_paths()
     if not image_paths:
         print("No images found to index. Check your config.json.")
+        report("failed", message="No images found to index. Check your folders.")
         return
 
     print(f"Found {len(image_paths)} image(s) to process.")
+    report("loading_model", total=len(image_paths), message="Loading CLIP model...")
     
     if not os.path.exists(MODEL_PATH):
         print(f"\nModel not found at {MODEL_PATH}. Downloading from Hugging Face...")
@@ -93,6 +108,13 @@ def run_indexing():
     print(f"\nStarting indexing of {len(image_paths)} images...")
     indexed_count = 0
     for idx, path in enumerate(image_paths):
+        report(
+            "embedding",
+            processed=idx,
+            total=len(image_paths),
+            current_file=os.path.basename(path),
+            message=f"Indexing {idx + 1} of {len(image_paths)} images...",
+        )
         try:
             image = Image.open(path).convert("RGB")
             inputs = processor(images=image, return_tensors="pt")
@@ -113,12 +135,27 @@ def run_indexing():
             indexed_count += 1
         except Exception as e:
             print(f"  Error indexing {path}: {e}")
+        finally:
+            report(
+                "embedding",
+                processed=idx + 1,
+                total=len(image_paths),
+                current_file=os.path.basename(path),
+                message=f"Indexed {idx + 1} of {len(image_paths)} images...",
+            )
 
     if not embeddings:
         print("No valid embeddings were created. Indexing aborted.")
+        report("failed", processed=len(image_paths), total=len(image_paths), message="No valid images could be indexed.")
         return
 
     print("\nBuilding FAISS index...")
+    report(
+        "saving",
+        processed=len(image_paths),
+        total=len(image_paths),
+        message="Saving FAISS index and metadata...",
+    )
     # FAISS setup
     dimension = embeddings[0].shape[0]
     index = faiss.IndexFlatIP(dimension)
@@ -131,6 +168,12 @@ def run_indexing():
     print(f"  - Total indexed images: {index.ntotal}")
     print(f"  - FAISS index saved to: {INDEX_FILE}")
     print(f"  - SQLite DB saved to: {SQL_DB_FILE}")
+    report(
+        "complete",
+        processed=index.ntotal,
+        total=len(image_paths),
+        message=f"Indexing complete. {index.ntotal} images indexed.",
+    )
 
 if __name__ == "__main__":
     run_indexing()

@@ -4,6 +4,7 @@ import 'sidebar.dart';
 import 'results_screen.dart';
 import 'settings_screen.dart';
 import 'services/api_service.dart';
+import 'widgets.dart';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -16,10 +17,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   final ApiService _api = ApiService();
   bool _searching = false;
   String? _backendMessage;
+  late Future<SearchResponse> _libraryFuture;
 
   @override
   void initState() {
     super.initState();
+    _libraryFuture = _api.library();
     _checkBackend();
   }
 
@@ -38,6 +41,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         _backendMessage = 'Backend offline — start with: python api.py';
       });
     }
+  }
+
+  void _reloadLibrary() {
+    setState(() {
+      _libraryFuture = _api.library();
+    });
+    _checkBackend();
   }
 
   Future<void> _doSearch(String q) async {
@@ -67,11 +77,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               children: [
                 AppSidebar(
                   activePage: 'search',
-                  onNavigate: (page) {
+                  onNavigate: (page) async {
                     if (page == 'settings') {
-                      Navigator.of(context).push(
+                      await Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const SettingsScreen()),
                       );
+                      if (mounted) _reloadLibrary();
                     }
                   },
                 ),
@@ -150,11 +161,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: ['Architecture', 'Portraits', 'Landscapes'].map((tag) {
                                 return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: EdgeInsets.zero,
                                   child: InkWell(
                                     onTap: _searching ? null : () => _doSearch(tag),
                                     borderRadius: BorderRadius.circular(20),
@@ -176,11 +189,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                       ),
                       const Divider(height: 1, color: AppTheme.border),
                       Expanded(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Expanded(child: _EmptyHome()),
-                          ],
+                        child: _LibraryHome(
+                          future: _libraryFuture,
+                          onRetry: _reloadLibrary,
                         ),
                       ),
                     ],
@@ -224,26 +235,104 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _EmptyHome extends StatelessWidget {
-  const _EmptyHome();
+class _LibraryHome extends StatelessWidget {
+  final Future<SearchResponse> future;
+  final VoidCallback onRetry;
+
+  const _LibraryHome({
+    required this.future,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: AppTheme.bg,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.image_search_outlined, size: 48, color: AppTheme.textHint),
-            const SizedBox(height: 16),
-            Text('Search to discover similar images',
-                style: AppTheme.outfit(18, FontWeight.w600, AppTheme.textPrimary)),
-            const SizedBox(height: 8),
-            Text('Results from your indexed library will appear here',
-                style: AppTheme.inter(14, FontWeight.w400, AppTheme.textSecondary)),
+      child: FutureBuilder<SearchResponse>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppTheme.activeBlue),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return _GalleryMessage(
+              icon: Icons.cloud_off_outlined,
+              title: 'Indexed library unavailable',
+              subtitle: 'Start the backend and rebuild the index to browse images here.',
+              action: OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Retry'),
+              ),
+            );
+          }
+
+          final items = snapshot.data?.results ?? [];
+          if (items.isEmpty) {
+            return const _GalleryMessage(
+              icon: Icons.image_search_outlined,
+              title: 'No indexed images yet',
+              subtitle: 'Add folders in Settings, then rebuild the index.',
+            );
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(28),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: items.length,
+              itemBuilder: (ctx, i) => ImageCard(
+                item: items[i],
+                showScore: false,
+                onTap: () {},
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _GalleryMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget? action;
+
+  const _GalleryMessage({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.action,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: AppTheme.textHint),
+          const SizedBox(height: 16),
+          Text(title, style: AppTheme.outfit(18, FontWeight.w600, AppTheme.textPrimary)),
+          const SizedBox(height: 8),
+          Text(subtitle, style: AppTheme.inter(14, FontWeight.w400, AppTheme.textSecondary)),
+          if (action != null) ...[
+            const SizedBox(height: 18),
+            action!,
           ],
-        ),
+        ],
       ),
     );
   }

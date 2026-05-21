@@ -1,17 +1,21 @@
-# simsearch
+# SimSearch Backend
 
-A new Flutter project.
+This folder contains the active Python backend.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+```powershell
+pip install -r requirements.txt
+python api.py
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Rebuild Index
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Use the Flutter Settings screen, or run:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```powershell
+python clear_db.py
+python index.py
+```
+
+Generated files are written to `faiss_db/`, `sql_db/`, and `models/`; these folders are ignored by Git.

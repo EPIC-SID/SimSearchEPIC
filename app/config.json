@@ -1,6 +1,8 @@
 {
     "Folder_Paths": [
-        "C:\\SimSearch\\images",
-        "C:\\SimSearch\\test_media"
-    ]
+        "E:\\Siddhant\\VS Code\\Projects\\SimSearch\\images",
+        "E:\\Siddhant\\VS Code\\Projects\\SimSearch\\test_media",
+        "E:\\Siddhant\\Galaxy A17\\Photos\\Imagicaa"
+    ],
+    "confidence_threshold": 0.24
 }
